@@ -19,6 +19,9 @@ app.use((req, res, next) => {
 
 app.use('/users', (usersRoutes));
 app.use('/cards', cardRoutes);
+app.use((_, res) => {
+  res.status(404).json({ error: 'Not found', message: 'Resource not found' });
+});
 
 const { PORT = 3000 } = process.env;
 

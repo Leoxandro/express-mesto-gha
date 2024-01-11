@@ -2,12 +2,17 @@ const Card = require('../models/card');
 const {
   NotFoundError,
   BadRequestError,
+  ForbiddenError,
 } = require('../utils/errors');
+const {
+  HTTP_CREATED,
+  HTTP_OK,
+} = require('../constants/constants');
 
 const getCards = (_, res, next) => {
   Card.find({})
     .then((cards) => {
-      res.status(200).send({ data: cards });
+      res.status(HTTP_OK).send({ data: cards });
     })
     .catch(next);
 };
@@ -16,15 +21,13 @@ const createCard = (req, res, next) => {
   const { name, link } = req.body;
 
   return Card.create({ name, link, owner: req.user._id })
-    .then((card) => {
-      res.status(201).send({ data: card });
-    })
+    .then((card) => res.status(HTTP_CREATED).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         next(new BadRequestError('Invalid data format'));
-        return;
+      } else {
+        next(err);
       }
-      next(err);
     });
 };
 
@@ -33,6 +36,12 @@ const deleteCard = (req, res, next) => {
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
+      }
+      const ownerId = card.owner.id;
+      const userId = req.user._id;
+
+      if (ownerId !== userId) {
+        throw new ForbiddenError('No permission to delete a card');
       }
       return card.remove().then(() => res.send({ data: card }));
     })
@@ -49,13 +58,14 @@ const likeCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
       }
-      return res.status(200).send({ data: card });
+      return res.status(HTTP_OK).send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequestError('Invalid data format'));
+      } else {
+        next(err);
       }
-      next(err);
     });
 };
 
@@ -69,13 +79,14 @@ const dislikeCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
       }
-      return res.status(200).send({ data: card });
+      return res.status(HTTP_OK).send({ data: card });
     })
     .catch((err) => {
       if (err.ane === 'CastError') {
         next(new BadRequestError('Invalid data format'));
+      } else {
+        next(err);
       }
-      next(err);
     });
 };
 

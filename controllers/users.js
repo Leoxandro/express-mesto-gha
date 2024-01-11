@@ -4,13 +4,17 @@ const {
   NotFoundError,
   BadRequestError,
 } = require('../utils/errors');
+const {
+  HTTP_OK,
+  HTTP_CREATED,
+} = require('../constants/constants');
 
 const getUsers = (_, res, next) => {
   User.find({})
     .then((users) => {
-      res.status(200).send({ data: users });
+      res.status(HTTP_OK).send({ data: users });
     })
-    .catch((err) => next(err));
+    .catch(next);
 };
 
 const getUser = (req, res, next) => {
@@ -19,14 +23,14 @@ const getUser = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(200).send({ data: user });
+      return res.status(HTTP_OK).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequestError('Invalid data format'));
-        return;
+      } else {
+        next(err);
       }
-      next(err);
     });
 };
 
@@ -38,13 +42,17 @@ const createUser = (req, res, next) => {
   } = req.body;
 
   User.create({ name, about, avatar })
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.status(HTTP_CREATED).send({ data: user }))
     .catch((err) => {
       if (err.name === 'MongoServerError') {
         next(new ConflictError('User with same name already exists'));
-      } else {
-        next(err);
+      } if (err.name === 'ValidatonError') {
+        const errorMessage = Object.values(err.errors)
+          .map((error) => error.message)
+          .join(', ');
+        return next(new BadRequestError(`Validation error ${errorMessage}`));
       }
+      return next(err);
     });
 };
 
@@ -65,9 +73,14 @@ const updateUser = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(200).send({ data: user });
+      return res.status(HTTP_OK).send({ data: user });
     })
-    .catch((err) => next(err));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return next(new BadRequestError('Provided info is incorrect'));
+      }
+      return next(err);
+    });
 };
 
 const updateAvatar = (req, res, next) => {
@@ -86,9 +99,9 @@ const updateAvatar = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(200).send({ data: user });
+      return res.status(HTTP_OK).send({ data: user });
     })
-    .catch((err) => next(err));
+    .catch(next);
 };
 
 module.exports = {
