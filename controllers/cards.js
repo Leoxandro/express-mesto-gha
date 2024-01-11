@@ -1,4 +1,8 @@
 const Card = require('../models/card');
+const {
+  NotFoundError,
+  BadRequestError,
+} = require('../utils/errors');
 
 const getCards = (_, res, next) => {
   Card.find({})
@@ -8,21 +12,27 @@ const getCards = (_, res, next) => {
     .catch(next);
 };
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
 
   return Card.create({ name, link, owner: req.user._id })
     .then((card) => {
       res.status(201).send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: 'Error creating new card' }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError('Invalid data format'));
+        return;
+      }
+      next(err);
+    });
 };
 
 const deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        console.log('Card not found');
+        throw new NotFoundError('Card was not found');
       }
       return card.remove().then(() => res.send({ data: card }));
     })
@@ -37,11 +47,16 @@ const likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        console.log('Post is not found');
+        throw new NotFoundError('Card was not found');
       }
       return res.status(200).send({ data: card });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new BadRequestError('Invalid data format'));
+      }
+      next(err);
+    });
 };
 
 const dislikeCard = (req, res, next) => {
@@ -52,11 +67,16 @@ const dislikeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        console.log('Post is not found');
+        throw new NotFoundError('Card was not found');
       }
       return res.status(200).send({ data: card });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.ane === 'CastError') {
+        next(new BadRequestError('Invalid data format'));
+      }
+      next(err);
+    });
 };
 
 module.exports = {

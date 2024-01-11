@@ -1,25 +1,36 @@
 const User = require('../models/user');
+const {
+  ConflictError,
+  NotFoundError,
+  BadRequestError,
+} = require('../utils/errors');
 
 const getUsers = (_, res, next) => {
   User.find({})
     .then((users) => {
       res.status(200).send({ data: users });
     })
-    .catch(next);
+    .catch((err) => next(err));
 };
 
 const getUser = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
       if (!user) {
-        console.log('User not found');
+        throw new NotFoundError('User not found');
       }
       return res.status(200).send({ data: user });
     })
-    .catch((err) => next(err));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new BadRequestError('Invalid data format'));
+        return;
+      }
+      next(err);
+    });
 };
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const {
     name,
     about,
@@ -28,7 +39,13 @@ const createUser = (req, res) => {
 
   User.create({ name, about, avatar })
     .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(500).send({ message: `Error creating new user, status ${err.message}` }));
+    .catch((err) => {
+      if (err.name === 'MongoServerError') {
+        next(new ConflictError('User with same name already exists'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const updateUser = (req, res, next) => {
@@ -41,11 +58,12 @@ const updateUser = (req, res, next) => {
     },
     {
       new: true,
+      runValidators: true,
     },
   )
     .then((user) => {
       if (!user) {
-        console.log('User not found');
+        throw new NotFoundError('User not found');
       }
       return res.status(200).send({ data: user });
     })
@@ -66,7 +84,7 @@ const updateAvatar = (req, res, next) => {
   )
     .then((user) => {
       if (!user) {
-        console.log('User not found');
+        throw new NotFoundError('User not found');
       }
       return res.status(200).send({ data: user });
     })
