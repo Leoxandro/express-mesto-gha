@@ -6,6 +6,7 @@ const {
   likeCard,
   dislikeCard,
 } = require('../controllers/cards');
+const errorHandler = require('../middleware/error-handler');
 
 router.get('/', getCards);
 router.post('/', createCard);
@@ -15,5 +16,6 @@ router.delete('/:cardId/likes', dislikeCard);
 router.use((_, res) => {
   res.status(404).json({ error: 'Not Found', message: 'Card resource not found' });
 });
+router.use(errorHandler);
 
 module.exports = router;

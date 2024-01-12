@@ -5,14 +5,14 @@ const {
   BadRequestError,
 } = require('../utils/errors');
 const {
-  HTTP_OK,
-  HTTP_CREATED,
+  HTTP_STATUS_CREATED,
+  HTTP_STATUS_OK,
 } = require('../constants/constants');
 
 const getUsers = (_, res, next) => {
   User.find({})
     .then((users) => {
-      res.status(HTTP_OK).send({ data: users });
+      res.status(HTTP_STATUS_OK).send({ data: users });
     })
     .catch(next);
 };
@@ -23,7 +23,7 @@ const getUser = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(HTTP_OK).send({ data: user });
+      return res.status(HTTP_STATUS_OK).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
@@ -42,10 +42,10 @@ const createUser = (req, res, next) => {
   } = req.body;
 
   User.create({ name, about, avatar })
-    .then((user) => res.status(HTTP_CREATED).send({ data: user }))
+    .then((user) => res.status(HTTP_STATUS_CREATED).send({ data: user }))
     .catch((err) => {
       if (err.name === 'MongoServerError') {
-        next(new ConflictError('User with same name already exists'));
+        return next(new ConflictError('User with same name already exists'));
       } if (err.name === 'ValidatonError') {
         const errorMessage = Object.values(err.errors)
           .map((error) => error.message)
@@ -73,7 +73,7 @@ const updateUser = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(HTTP_OK).send({ data: user });
+      return res.status(HTTP_STATUS_OK).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -99,9 +99,14 @@ const updateAvatar = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      return res.status(HTTP_OK).send({ data: user });
+      return res.status(HTTP_STATUS_OK).send({ data: user });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return next(new BadRequestError('Provided info is incorrect'));
+      }
+      return next(err);
+    });
 };
 
 module.exports = {

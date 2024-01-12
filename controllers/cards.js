@@ -5,14 +5,14 @@ const {
   ForbiddenError,
 } = require('../utils/errors');
 const {
-  HTTP_CREATED,
-  HTTP_OK,
+  HTTP_STATUS_CREATED,
+  HTTP_STATUS_OK,
 } = require('../constants/constants');
 
 const getCards = (_, res, next) => {
   Card.find({})
     .then((cards) => {
-      res.status(HTTP_OK).send({ data: cards });
+      res.status(HTTP_STATUS_OK).send({ data: cards });
     })
     .catch(next);
 };
@@ -21,13 +21,12 @@ const createCard = (req, res, next) => {
   const { name, link } = req.body;
 
   return Card.create({ name, link, owner: req.user._id })
-    .then((card) => res.status(HTTP_CREATED).send({ data: card }))
+    .then((card) => res.status(HTTP_STATUS_CREATED).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequestError('Invalid data format'));
-      } else {
-        next(err);
+        return next(new BadRequestError('Invalid data format'));
       }
+      return next(err);
     });
 };
 
@@ -58,14 +57,13 @@ const likeCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
       }
-      return res.status(HTTP_OK).send({ data: card });
+      return res.status(HTTP_STATUS_OK).send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequestError('Invalid data format'));
-      } else {
-        next(err);
+        return next(new BadRequestError('Invalid data format'));
       }
+      return next(err);
     });
 };
 
@@ -79,14 +77,13 @@ const dislikeCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
       }
-      return res.status(HTTP_OK).send({ data: card });
+      return res.status(HTTP_STATUS_OK).send({ data: card });
     })
     .catch((err) => {
-      if (err.ane === 'CastError') {
-        next(new BadRequestError('Invalid data format'));
-      } else {
-        next(err);
+      if (err.name === 'CastError') {
+        return next(new BadRequestError('Invalid data format'));
       }
+      return next(err);
     });
 };
 
