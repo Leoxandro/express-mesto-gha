@@ -1,13 +1,29 @@
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const {
   ConflictError,
   NotFoundError,
   BadRequestError,
+  UnauthorizedError,
 } = require('../utils/errors');
 const {
   HTTP_STATUS_CREATED,
   HTTP_STATUS_OK,
 } = require('../constants/constants');
+
+const { JWT_SECRET = 'dev-key' } = process.env;
+
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
+      res.send({ token });
+    })
+    .catch(() => next(new UnauthorizedError('Incorrect email or password')));
+};
 
 const getUsers = (_, res, next) => {
   User.find({})
@@ -34,14 +50,35 @@ const getUser = (req, res, next) => {
     });
 };
 
+const getCurrentUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      return res.status(HTTP_STATUS_OK).send({ data: user });
+    })
+    .catch((err) => next(err));
+};
+
 const createUser = (req, res, next) => {
   const {
     name,
     about,
     avatar,
+    email,
+    password,
   } = req.body;
 
-  User.create({ name, about, avatar })
+  return bcrypt
+    .hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    }))
     .then((user) => res.status(HTTP_STATUS_CREATED).send({ data: user }))
     .catch((err) => {
       if (err.name === 'MongoServerError') {
@@ -115,4 +152,6 @@ module.exports = {
   createUser,
   updateUser,
   updateAvatar,
+  login,
+  getCurrentUser,
 };

@@ -1,7 +1,11 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const { celebrate, Joi } = require('celebrate');
 const usersRoutes = require('./routes/users');
 const cardRoutes = require('./routes/cards');
+const { createUser, login } = require('./controllers/users');
+const auth = require('./middleware/auth');
+const regEx = require('./constants/constants');
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
 
@@ -9,14 +13,32 @@ const app = express();
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '659a9fc1010cd4b3b116b8d5',
-  };
+app.post(
+  '/signin',
+  celebrate({
+    body: Joi.object().keys({
+      email: Joi.string().required().email(),
+      password: Joi.string().required(),
+    }),
+  }),
+  login,
+);
 
-  next();
-});
+app.post(
+  '/signup',
+  celebrate({
+    body: Joi.object().keys({
+      name: Joi.string().min(2).max(30),
+      about: Joi.string().min(2).max(30),
+      avatar: Joi.string().pattern(regEx),
+      email: Joi.string().required().email(),
+      password: Joi.string().required(),
+    }),
+  }),
+  createUser,
+);
 
+app.use(auth);
 app.use('/users', (usersRoutes));
 app.use('/cards', cardRoutes);
 app.use((_, res) => {
