@@ -36,13 +36,13 @@ const deleteCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Card was not found');
       }
-      const ownerId = card.owner.id;
+      const ownerId = card.owner.toString();
       const userId = req.user._id;
 
       if (ownerId !== userId) {
         throw new ForbiddenError('No permission to delete a card');
       }
-      return card.remove().then(() => res.send({ data: card }));
+      return card.deleteOne().then(() => res.send({ data: card }));
     })
     .catch(next);
 };

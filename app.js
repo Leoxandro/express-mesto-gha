@@ -1,11 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const { errors } = require('celebrate');
 const usersRoutes = require('./routes/users');
 const cardRoutes = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
 const { signInSchema, signUpSchema } = require('./middleware/validation');
 const auth = require('./middleware/auth');
-const { celebrateErrorHandler, errorHandler } = require('./middleware/error-handler');
+const { errorHandler } = require('./middleware/error-handler');
+const { NotFoundError } = require('./utils/errors');
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
 
@@ -19,8 +21,12 @@ app.use(auth);
 app.use('/users', usersRoutes);
 app.use('/cards', cardRoutes);
 
+app.use('*', (res, req, next) => {
+  next(new NotFoundError('Requested resource was not found'));
+});
+
+app.use(errors());
 app.use(errorHandler);
-app.use(celebrateErrorHandler);
 
 const { PORT = 3000 } = process.env;
 

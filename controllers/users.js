@@ -12,7 +12,7 @@ const {
   HTTP_STATUS_OK,
 } = require('../constants/constants');
 
-const { JWT_SECRET = 'dev-key' } = process.env;
+const { JWT_SECRET = 'dev_key' } = process.env;
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
@@ -79,7 +79,10 @@ const createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => res.status(HTTP_STATUS_CREATED).send({ data: user }))
+    .then((user) => {
+      const { password: hashedPassword, ...userWithoutPassword } = user.toObject();
+      res.status(HTTP_STATUS_CREATED).send({ data: userWithoutPassword });
+    })
     .catch((err) => {
       if (err.name === 'MongoServerError') {
         return next(new ConflictError('User with same name already exists'));
