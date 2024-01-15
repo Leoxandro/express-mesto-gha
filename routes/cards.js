@@ -7,9 +7,8 @@ const {
   likeCard,
   dislikeCard,
 } = require('../controllers/cards');
-const errorHandler = require('../middleware/error-handler');
 
-const regEx = require('../constants/constants');
+const { regEx } = require('../constants/constants');
 
 router.get('/', getCards);
 router.post('/', celebrate({
@@ -33,9 +32,5 @@ router.delete('/:cardId/likes', celebrate({
     cardId: Joi.string().length(24).hex().required(),
   }),
 }), dislikeCard);
-router.use((_, res) => {
-  res.status(404).json({ error: 'Not Found', message: 'Card resource not found' });
-});
-router.use(errorHandler);
 
 module.exports = router;

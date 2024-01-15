@@ -7,14 +7,13 @@ const {
   updateUser,
   getCurrentUser,
 } = require('../controllers/users');
-const errorHandler = require('../middleware/error-handler');
 
-const regEx = require('../constants/constants');
+const { regEx } = require('../constants/constants');
 
 router.get('/', getUsers);
 router.get('/:userId', celebrate({
   params: Joi.object().keys({
-    id: Joi.string().length(24).hex().required(),
+    userId: Joi.string().length(24).hex().required(),
   }),
 }), getUser);
 router.get('/me', getCurrentUser);
@@ -29,9 +28,5 @@ router.patch('/me/avatar', celebrate({
     avatar: Joi.string().pattern(regEx),
   }),
 }), updateAvatar);
-router.use((_, res) => {
-  res.status(404).json({ error: 'Not Found', message: 'User resource not found' });
-});
-router.use(errorHandler);
 
 module.exports = router;
